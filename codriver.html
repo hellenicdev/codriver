@@ -48,6 +48,7 @@
             display: flex;
             gap: 10px;
             align-items: center;
+            position: relative;
         }
         .input-area input {
             flex: 1;
@@ -75,6 +76,16 @@
         .input-area button:hover {
             background-color: #005cbf;
         }
+        .mic-status {
+            position: absolute;
+            top: -25px; /* Position above the input field */
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            font-weight: bold;
+            color: red;
+            display: none; /* Hidden by default */
+        }
     </style>
 </head>
 <body>
@@ -88,7 +99,9 @@
                 <!-- Messages will appear here -->
             </div>
             <div class="input-area">
-                <input type="text" id="userInput" placeholder="Ask your question..."     <button onclick="sendMessage()">Send</button>
+                <span class="mic-status" id="micStatus">Listening...</span>
+                <input type="text" id="userInput" placeholder="Ask your question or play a game...">
+                <button onclick="sendMessage()">Send</button>
                 <button onclick="startListening()"><span>🎤</span> Speak</button>
             </div>
         </div>
@@ -97,6 +110,7 @@
     <script>
         const userInput = document.getElementById("userInput");
         const messageArea = document.getElementById("messageArea");
+        const micStatus = document.getElementById("micStatus"); // Mic status indicator
         let isGuessingGameActive = false;
         let randomNumber = 0;
 
@@ -111,6 +125,14 @@
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.lang = "en-US";
         recognition.interimResults = false;
+
+        recognition.addEventListener("start", () => {
+            micStatus.style.display = "block"; // Show mic status
+        });
+
+        recognition.addEventListener("end", () => {
+            micStatus.style.display = "none"; // Hide mic status
+        });
 
         recognition.addEventListener("result", (event) => {
             const speechToText = event.results[0][0].transcript;
@@ -142,22 +164,30 @@
                 } else {
                     response = guess > randomNumber ? "Too high! Try again." : "Too low! Try again.";
                 }
-            } else if (/play a game/i.test(input)) {
-                isGuessingGameActive = true;
-                randomNumber = Math.floor(Math.random() * 10) + 1;
-                response = "Great! I have picked a number between 1 and 10. Try to guess it!";
-            } else if (/joke/i.test(input)) {
+            } 
+            // Weather-related queries prioritized
+            else if (/weather/i.test(input)) {
+                response = "I currently can't fetch weather information, but I could integrate a weather API to provide live updates!";
+            } 
+            // Joke, riddle, fun fact queries
+            else if (/joke/i.test(input)) {
                 response = getRandomJoke();
             } else if (/riddle/i.test(input)) {
                 response = getRandomRiddle();
             } else if (/fun fact/i.test(input)) {
                 response = getRandomFunFact();
-            } else if (/time|what time is it/i.test(input)) {
+            } 
+            // Time queries
+            else if (/time|what time is it/i.test(input)) {
                 const currentTime = formatTime(new Date());
                 response = `The current time is ${currentTime.text}.`;
-            } else if (/hello|hi/i.test(input)) {
+            } 
+            // Greetings
+            else if (/hello|hi/i.test(input)) {
                 response = "Hello! How can I assist you today?";
-            } else {
+            } 
+            // Math queries handled last
+            else {
                 const mathQuery = input.match(/(?:what'?s|what is|calculate|^)([\d\+\-\*\/\s]+)/i);
                 if (mathQuery) {
                     try {
@@ -212,9 +242,9 @@
 
         function getRandomFunFact() {
             const funFacts = [
-                "Did you know? Honey never spoils!",
-                "A single cloud can weigh over a million pounds.",
-                "Bananas are berries, but strawberries aren't!"
+                "Did you know honey never spoils?",
+                "Did you know a single cloud can weigh over a million pounds?",
+                "Did you know bananas are berries, but strawberries aren't?"
             ];
             return funFacts[Math.floor(Math.random() * funFacts.length)];
         }
@@ -231,7 +261,7 @@
             };
         }
 
-        function speak(text) {
+                function speak(text) {
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = "en-US";
 
