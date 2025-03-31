@@ -13,7 +13,7 @@
         }
         .fullscreen-container {
             width: 100vw;
-            height: 100vh;
+            height: 100vh
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -106,7 +106,7 @@
         const userInput = document.getElementById("userInput");
         const messageArea = document.getElementById("messageArea");
         const micStatus = document.getElementById("micStatus");
-        const NYT_API_KEY = "A8tN7lYDQlps0uy4xub1BLFVpoHxHgr1"; // NYT API key
+        const NYT_API_KEY = "N8j8mb3TSiexCbefuDeT1Ap5MgKPGwmw"; // Updated NYT API key
         const RAPID_API_URL = 'https://free-chatgpt-api.p.rapidapi.com/chat-completion-one?prompt=hello';
         const RAPID_API_OPTIONS = {
             method: 'GET',
@@ -150,11 +150,15 @@
         async function fetchNYTTopStories() {
             try {
                 const response = await fetch(`https://api.nytimes.com/svc/topstories/v2/home.json?api-key=${NYT_API_KEY}`);
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status} ${response.statusText}`);
+                }
                 const data = await response.json();
                 const articles = data.results.slice(0, 5);
-                return articles.map(article => article.title).join("\n");
+                return articles.map(article => `• ${article.title}`).join("\n");
             } catch (error) {
-                return "Sorry, I couldn't fetch the top stories right now.";
+                console.error("Failed to fetch news:", error);
+                return "Sorry, I couldn't fetch the top stories. Please check your network or API key.";
             }
         }
 
@@ -164,6 +168,7 @@
                 const result = await response.text();
                 return result;
             } catch (error) {
+                console.error("Failed to fetch from RapidAPI:", error);
                 return "Sorry, I couldn't fetch the information from RapidAPI.";
             }
         }
@@ -243,29 +248,7 @@
             messageArea.appendChild(assistantMessage);
 
             userInput.value = "";
-            messageArea.scrollTop = messageArea.scrollHeight;
-        }
-
-                function getRandomJoke() {
-            const jokes = [
-                "Why don't scientists trust atoms? Because they make up everything!",
-                "Why did the scarecrow win an award? Because he was outstanding in his field!",
-                "Why do bicycles fall over? Because they're two-tired!",
-                "Why was the math book sad? Because it had too many problems.",
-                "Why did the tomato blush? Because it saw the salad dressing!"
-            ];
-            return jokes[Math.floor(Math.random() * jokes.length)];
-        }
-
-        function getRandomRiddle() {
-            const riddles = [
-                "What has keys but can't open locks? A piano.",
-                "What can travel around the world while staying in one spot? A stamp.",
-                "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I? An echo.",
-                "The more of this you take, the more you leave behind. What is it? Footsteps.",
-                "I am not alive, but I can grow. I don’t have lungs, but I need air. What am I? Fire."
-            ];
-            return riddles[Math.floor(Math.random() * riddles.length)];
+                        messageArea.scrollTop = messageArea.scrollHeight;
         }
 
         function getRandomFunFact() {
@@ -310,6 +293,28 @@
             utterance.volume = 1.0;
 
             window.speechSynthesis.speak(utterance);
+        }
+
+        function getRandomJoke() {
+            const jokes = [
+                "Why don't scientists trust atoms? Because they make up everything!",
+                "Why did the scarecrow win an award? Because he was outstanding in his field!",
+                "Why do bicycles fall over? Because they're two-tired!",
+                "Why was the math book sad? Because it had too many problems.",
+                "Why did the tomato blush? Because it saw the salad dressing!"
+            ];
+            return jokes[Math.floor(Math.random() * jokes.length)];
+        }
+
+        function getRandomRiddle() {
+            const riddles = [
+                "What has keys but can't open locks? A piano.",
+                "What can travel around the world while staying in one spot? A stamp.",
+                "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I? An echo.",
+                "The more of this you take, the more you leave behind. What is it? Footsteps.",
+                "I am not alive, but I can grow. I don’t have lungs, but I need air. What am I? Fire."
+            ];
+            return riddles[Math.floor(Math.random() * riddles.length)];
         }
     </script>
 </body>
