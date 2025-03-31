@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codriver - Your AI-powered Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        .fullscreen-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .title {
+            color: blue;
+            font-size: 30px; /* Reduced font size */
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .chat-container {
+            width: 100%;
+            height: 80%;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .message-area {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .input-area {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+        }
+        .input-area button {
+            padding: 8px;
+            width: 80px;
+            height: 40px;
+            border: none;
+            background-color: #0078d7;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .input-area button span {
+            font-size: 12px;
+        }
+        .input-area button:hover {
+            background-color: #005cbf;
+        }
+    </style>
+</head>
+<body>
+    <div class="fullscreen-container">
+        <!-- Title inside the frame -->
+        <div class="title">
+            Codriver: Your AI-powered Assistant
+        </div>
+        <div class="chat-container">
+            <div class="message-area" id="messageArea">
+                <!-- Messages will appear here -->
+            </div>
+            <div class="input-area">
+                <input type="text" id="userInput" placeholder="Ask your question..."     <button onclick="sendMessage()">Send</button>
+                <button onclick="startListening()"><span>🎤</span> Speak</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const userInput = document.getElementById("userInput");
+        const messageArea = document.getElementById("messageArea");
+        let isGuessingGameActive = false;
+        let randomNumber = 0;
+
+        // Enable "Enter" key functionality
+        userInput.addEventListener("keypress", function (event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        });
+
+        // Voice recognition setup
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = "en-US";
+        recognition.interimResults = false;
+
+        recognition.addEventListener("result", (event) => {
+            const speechToText = event.results[0][0].transcript;
+            userInput.value = speechToText;
+            sendMessage();
+        });
+
+        function startListening() {
+            recognition.start();
+        }
+
+        async function sendMessage() {
+            const input = userInput.value.trim();
+            if (!input) return;
+
+            const userMessage = document.createElement("p");
+            userMessage.textContent = "You: " + input;
+            messageArea.appendChild(userMessage);
+
+            let response;
+
+            if (isGuessingGameActive) {
+                const guess = parseInt(input);
+                if (isNaN(guess)) {
+                    response = "Please enter a valid number between 1 and 10.";
+                } else if (guess === randomNumber) {
+                    response = "Congratulations! You guessed it right!";
+                    isGuessingGameActive = false; // End the game
+                } else {
+                    response = guess > randomNumber ? "Too high! Try again." : "Too low! Try again.";
+                }
+            } else if (/play a game/i.test(input)) {
+                isGuessingGameActive = true;
+                randomNumber = Math.floor(Math.random() * 10) + 1;
+                response = "Great! I have picked a number between 1 and 10. Try to guess it!";
+            } else if (/joke/i.test(input)) {
+                response = getRandomJoke();
+            } else if (/riddle/i.test(input)) {
+                response = getRandomRiddle();
+            } else if (/fun fact/i.test(input)) {
+                response = getRandomFunFact();
+            } else if (/time|what time is it/i.test(input)) {
+                const currentTime = formatTime(new Date());
+                response = `The current time is ${currentTime.text}.`;
+            } else if (/hello|hi/i.test(input)) {
+                response = "Hello! How can I assist you today?";
+            } else {
+                const mathQuery = input.match(/(?:what'?s|what is|calculate|^)([\d\+\-\*\/\s]+)/i);
+                if (mathQuery) {
+                    try {
+                        const mathExpression = mathQuery[1].replace(/\s+/g, "");
+                        const result = Function(`'use strict'; return (${mathExpression})`)();
+                        response = `The result is ${result}`;
+                    } catch {
+                        response = "I couldn't calculate that. Please check your expression.";
+                    }
+                } else {
+                    response = "Sorry, I didn't understand that. Can you try again?";
+                }
+            }
+
+            const assistantMessage = document.createElement("div");
+            assistantMessage.style.display = "flex";
+            assistantMessage.style.alignItems = "center";
+
+            const textNode = document.createElement("p");
+            textNode.style.color = "blue";
+            textNode.textContent = "Codriver: " + response;
+
+            const speakButton = document.createElement("button");
+            speakButton.textContent = "🔊";
+            speakButton.onclick = () => speak(response);
+
+            assistantMessage.appendChild(textNode);
+            assistantMessage.appendChild(speakButton);
+            messageArea.appendChild(assistantMessage);
+
+            userInput.value = "";
+            messageArea.scrollTop = messageArea.scrollHeight;
+        }
+
+        function getRandomJoke() {
+            const jokes = [
+                "Why don't scientists trust atoms? Because they make up everything!",
+                "Why did the scarecrow win an award? Because he was outstanding in his field!",
+                "Why do bicycles fall over? Because they're two-tired!"
+            ];
+            return jokes[Math.floor(Math.random() * jokes.length)];
+        }
+
+        function getRandomRiddle() {
+            const riddles = [
+                "What has keys but can't open locks? A piano.",
+                "What can travel around the world while staying in one spot? A stamp.",
+                "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I? An echo."
+            ];
+            return riddles[Math.floor(Math.random() * riddles.length)];
+        }
+
+        function getRandomFunFact() {
+            const funFacts = [
+                "Did you know? Honey never spoils!",
+                "A single cloud can weigh over a million pounds.",
+                "Bananas are berries, but strawberries aren't!"
+            ];
+            return funFacts[Math.floor(Math.random() * funFacts.length)];
+        }
+
+        function formatTime(date) {
+            const hours = date.getHours() % 12 || 12;
+            const minutes = String(date.getMinutes()).padStart(2, "0");
+            const spokenMinutes = minutes === "00" ? "o'clock" : minutes.split("").join(" ");
+            const period = date.getHours() >= 12 ? "PM" : "AM";
+
+            return {
+                text: `${hours}:${minutes} ${period}`,
+                spoken: `${hours} ${spokenMinutes} ${period}`
+            };
+        }
+
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = "en-US";
+
+            const voices = window.speechSynthesis.getVoices();
+            utterance.voice = voices.find(voice =>
+                voice.name.includes("Microsoft") ||
+                voice.name.includes("Google") ||
+                voice.name.includes("Natural")
+            ) || voices[0];
+
+            utterance.pitch = 1.0;
+            utterance.rate = 0.9;
+            utterance.volume = 1.0;
+
+            window.speechSynthesis.speak(utterance);
+        }
+    </script>
+</body>
+</html>
