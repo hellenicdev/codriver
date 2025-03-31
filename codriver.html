@@ -21,10 +21,17 @@
         }
         .title {
             color: blue;
-            font-size: 30px; /* Reduced font size */
+            font-size: 30px;
             font-weight: bold;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+        }
+        .mic-status {
+            font-size: 14px;
+            font-weight: bold;
+            color: red;
+            margin-bottom: 10px;
+            display: none;
         }
         .chat-container {
             width: 100%;
@@ -48,7 +55,6 @@
             display: flex;
             gap: 10px;
             align-items: center;
-            position: relative;
         }
         .input-area input {
             flex: 1;
@@ -76,30 +82,19 @@
         .input-area button:hover {
             background-color: #005cbf;
         }
-        .mic-status {
-            position: absolute;
-            top: -25px; /* Position above the input field */
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 14px;
-            font-weight: bold;
-            color: red;
-            display: none; /* Hidden by default */
-        }
     </style>
 </head>
 <body>
     <div class="fullscreen-container">
-        <!-- Title inside the frame -->
         <div class="title">
             Codriver: Your AI-powered Assistant
         </div>
+        <div class="mic-status" id="micStatus">Listening...</div>
         <div class="chat-container">
             <div class="message-area" id="messageArea">
                 <!-- Messages will appear here -->
             </div>
             <div class="input-area">
-                <span class="mic-status" id="micStatus">Listening...</span>
                 <input type="text" id="userInput" placeholder="Ask your question or play a game...">
                 <button onclick="sendMessage()">Send</button>
                 <button onclick="startListening()"><span>🎤</span> Speak</button>
@@ -110,28 +105,36 @@
     <script>
         const userInput = document.getElementById("userInput");
         const messageArea = document.getElementById("messageArea");
-        const micStatus = document.getElementById("micStatus"); // Mic status indicator
+        const micStatus = document.getElementById("micStatus");
+        const NYT_API_KEY = "A8tN7lYDQlps0uy4xub1BLFVpoHxHgr1"; // NYT API key
+        const RAPID_API_URL = 'https://free-chatgpt-api.p.rapidapi.com/chat-completion-one?prompt=hello';
+        const RAPID_API_OPTIONS = {
+            method: 'GET',
+            headers: {
+                'x-rapidapi-key': '80edef5238msh83482fbd049c54ap1cc41djsn4b6d251414fc',
+                'x-rapidapi-host': 'free-chatgpt-api.p.rapidapi.com'
+            }
+        };
+
         let isGuessingGameActive = false;
         let randomNumber = 0;
 
-        // Enable "Enter" key functionality
         userInput.addEventListener("keypress", function (event) {
             if (event.key === "Enter") {
                 sendMessage();
             }
         });
 
-        // Voice recognition setup
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.lang = "en-US";
         recognition.interimResults = false;
 
         recognition.addEventListener("start", () => {
-            micStatus.style.display = "block"; // Show mic status
+            micStatus.style.display = "block";
         });
 
         recognition.addEventListener("end", () => {
-            micStatus.style.display = "none"; // Hide mic status
+            micStatus.style.display = "none";
         });
 
         recognition.addEventListener("result", (event) => {
@@ -142,6 +145,27 @@
 
         function startListening() {
             recognition.start();
+        }
+
+        async function fetchNYTTopStories() {
+            try {
+                const response = await fetch(`https://api.nytimes.com/svc/topstories/v2/home.json?api-key=${NYT_API_KEY}`);
+                const data = await response.json();
+                const articles = data.results.slice(0, 5);
+                return articles.map(article => article.title).join("\n");
+            } catch (error) {
+                return "Sorry, I couldn't fetch the top stories right now.";
+            }
+        }
+
+        async function fetchRapidAPI() {
+            try {
+                const response = await fetch(RAPID_API_URL, RAPID_API_OPTIONS);
+                const result = await response.text();
+                return result;
+            } catch (error) {
+                return "Sorry, I couldn't fetch the information from RapidAPI.";
+            }
         }
 
         async function sendMessage() {
@@ -160,34 +184,34 @@
                     response = "Please enter a valid number between 1 and 10.";
                 } else if (guess === randomNumber) {
                     response = "Congratulations! You guessed it right!";
-                    isGuessingGameActive = false; // End the game
+                    isGuessingGameActive = false;
                 } else {
                     response = guess > randomNumber ? "Too high! Try again." : "Too low! Try again.";
                 }
             } 
-            // Weather-related queries prioritized
-            else if (/weather/i.test(input)) {
-                response = "I currently can't fetch weather information, but I could integrate a weather API to provide live updates!";
-            } 
-            // Joke, riddle, fun fact queries
-            else if (/joke/i.test(input)) {
+            // Handle weather-related queries
+            else if (/weather|forecast|temperature/i.test(input)) {
+                response = "I currently can't fetch live weather information. However, I could integrate a weather API to provide accurate updates!";
+            } else if (/play a game/i.test(input)) {
+                isGuessingGameActive = true;
+                randomNumber = Math.floor(Math.random() * 10) + 1;
+                response = "Great! I have picked a number between 1 and 10. Try to guess it!";
+            } else if (/top stories|news/i.test(input)) {
+                response = await fetchNYTTopStories();
+            } else if (/fetch rapidapi/i.test(input)) {
+                response = await fetchRapidAPI();
+            } else if (/joke/i.test(input)) {
                 response = getRandomJoke();
             } else if (/riddle/i.test(input)) {
                 response = getRandomRiddle();
             } else if (/fun fact/i.test(input)) {
                 response = getRandomFunFact();
-            } 
-            // Time queries
-            else if (/time|what time is it/i.test(input)) {
+            } else if (/time|what time is it/i.test(input)) {
                 const currentTime = formatTime(new Date());
                 response = `The current time is ${currentTime.text}.`;
-            } 
-            // Greetings
-            else if (/hello|hi/i.test(input)) {
+            } else if (/hello|hi/i.test(input)) {
                 response = "Hello! How can I assist you today?";
-            } 
-            // Math queries handled last
-            else {
+            } else {
                 const mathQuery = input.match(/(?:what'?s|what is|calculate|^)([\d\+\-\*\/\s]+)/i);
                 if (mathQuery) {
                     try {
@@ -222,11 +246,13 @@
             messageArea.scrollTop = messageArea.scrollHeight;
         }
 
-        function getRandomJoke() {
+                function getRandomJoke() {
             const jokes = [
                 "Why don't scientists trust atoms? Because they make up everything!",
                 "Why did the scarecrow win an award? Because he was outstanding in his field!",
-                "Why do bicycles fall over? Because they're two-tired!"
+                "Why do bicycles fall over? Because they're two-tired!",
+                "Why was the math book sad? Because it had too many problems.",
+                "Why did the tomato blush? Because it saw the salad dressing!"
             ];
             return jokes[Math.floor(Math.random() * jokes.length)];
         }
@@ -235,16 +261,23 @@
             const riddles = [
                 "What has keys but can't open locks? A piano.",
                 "What can travel around the world while staying in one spot? A stamp.",
-                "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I? An echo."
+                "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I? An echo.",
+                "The more of this you take, the more you leave behind. What is it? Footsteps.",
+                "I am not alive, but I can grow. I don’t have lungs, but I need air. What am I? Fire."
             ];
             return riddles[Math.floor(Math.random() * riddles.length)];
         }
 
         function getRandomFunFact() {
             const funFacts = [
-                "Did you know honey never spoils?",
-                "Did you know a single cloud can weigh over a million pounds?",
-                "Did you know bananas are berries, but strawberries aren't?"
+                "Did you know? Honey never spoils!",
+                "A single cloud can weigh over a million pounds.",
+                "Bananas are berries, but strawberries aren't!",
+                "Sharks existed before trees.",
+                "Octopuses have three hearts.",
+                "The Eiffel Tower can grow taller in the summer.",
+                "There are more stars in the universe than grains of sand on Earth.",
+                "Sloths can take up to a month to digest a single meal."
             ];
             return funFacts[Math.floor(Math.random() * funFacts.length)];
         }
@@ -261,7 +294,7 @@
             };
         }
 
-                function speak(text) {
+        function speak(text) {
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = "en-US";
 
