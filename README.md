@@ -19,6 +19,3 @@ Play a game
 News
 
 *More features coming soon...*
-
-
-*NOTE: A PART OF THIS PROJECT HAS BEEN MADE BY AI.* 
