@@ -116,6 +116,31 @@
       </div>
     </div>
   </div>
+  
+  <script>
+  const userPreferences = JSON.parse(localStorage.getItem("preferences")) || { theme: "light" };
+document.body.className = userPreferences.theme;
+
+function changeTheme() {
+  userPreferences.theme = userPreferences.theme === "light" ? "dark" : "light";
+  document.body.className = userPreferences.theme;
+  localStorage.setItem("preferences", JSON.stringify(userPreferences));
+}
+</script>
+
+<script>
+// AI Smart Suggestions
+function getSmartSuggestions(userInput) {
+  const suggestions = {
+    "hello": "Do you need help today?",
+    "weather": "Do you want a weather update?",
+    "news": "Looking for news?",
+    "time": "Would you like to know the current time?",
+    "game": "Want to play a guessing game?",
+  };
+  return suggestions[userInput.toLowerCase()] || "How can I assist you?";
+}
+</script>
 
   <script>
     // Global variables for game integration
@@ -310,5 +335,27 @@
       messageArea.appendChild(assistantContainer);
     }
   </script>
+  <script>
+    async function verifyMessage(userMessage) {
+        const response = await fetch("https://api.altcha.org/verify", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer 3ed4a79b5ee969a7022ef5dc",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ message: userMessage })
+        });
+
+        const verificationResult = await response.json();
+        console.log("Altcha API Response:", verificationResult); // Debugging log
+
+        if (verificationResult.verified === true) { 
+            processMessage(userMessage);  
+        } else {
+            alert("Message verification failed! Server response: " + JSON.stringify(verificationResult));
+        }
+    }
+</script>
+<p> <b> © 2025 - 2026 HellenicDev <br>  All Rights Reserved. </b>
 </body>
 </html>
