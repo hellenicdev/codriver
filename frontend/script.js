@@ -54,8 +54,8 @@ function addAssistantMessage(response) {
   assistantContainer.classList.add("assistant-message-container");
 
   const assistantMessage = document.createElement("p");
-  // Use innerHTML so markup from the AI shows up
-  assistantMessage.innerHTML = "Codriver: " + response;
+  // textContent so a model reply cannot inject HTML
+  assistantMessage.textContent = "Codriver: " + response;
   assistantMessage.classList.add("assistant-message");
 
   const assistantSpeaker = document.createElement("button");
@@ -71,7 +71,7 @@ function addAssistantMessage(response) {
 // External Fetches
 async function fetchWeather(city) {
   try {
-    const response = await fetch(`http://api.weatherapi.com/v1/current.json?key=${WEATHER_API_KEY}&q=${city}`);
+    const response = await fetch(`https://api.weatherapi.com/v1/current.json?key=${WEATHER_API_KEY}&q=${encodeURIComponent(city)}`);
     const data = await response.json();
     return `🌤 Weather in ${data.location.name}: ${data.current.temp_c}°C, ${data.current.condition.text}`;
   } catch {
@@ -83,7 +83,7 @@ async function fetchNews() {
   try {
     const response = await fetch(`https://api.nytimes.com/svc/topstories/v2/home.json?api-key=${NYT_API_KEY}`);
     const data = await response.json();
-    return data.results.slice(0, 5).map(article => `• ${article.title}`).join("<br>");
+    return data.results.slice(0, 5).map(article => `• ${article.title}`).join("\n");
   } catch {
     return "Sorry, I couldn't fetch the top news.";
   }
@@ -190,8 +190,14 @@ async function sendMessage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: input })
       });
-      const data = await apiResponse.json();
-      response = data.reply || "Sorry, I didn't understand that.";
+      if (apiResponse.status === 429) {
+        response = "You're sending messages too quickly. Please wait a moment.";
+      } else if (!apiResponse.ok) {
+        response = "Sorry, I couldn't get a reply right now.";
+      } else {
+        const data = await apiResponse.json();
+        response = data.reply || "Sorry, I didn't understand that.";
+      }
     } catch {
       response = "Sorry, I couldn't connect to the server.";
     }
