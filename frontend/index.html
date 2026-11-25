@@ -169,16 +169,14 @@
   <h1 class="title">Codriver: Your AI Assistant</h1>
 
   <div class="chat-container">
-    <div class="message-area" id="messageArea">
-      <!-- Example messages -->
-      <div class="message ai">Hello! How can I assist you today?</div>
-      <div class="message user">Hi! Tell me a fun fact.</div>
+    <div class="message-area" id="messageArea" role="log" aria-live="polite">
+      <div class="message ai">Hello! How can I assist you today? Try "tell me a joke", "weather in Athens" or ask me anything.</div>
     </div>
 
     <div class="input-area">
-      <input type="text" id="userInput" placeholder="Type your question..." />
-      <button onclick="sendMessage()">➤</button>
-      <button onclick="startListening()">🎤</button>
+      <input type="text" id="userInput" placeholder="Type your question..." aria-label="Your message" maxlength="4000" autocomplete="off" />
+      <button type="button" onclick="sendMessage()" aria-label="Send message" title="Send">➤</button>
+      <button type="button" onclick="startListening()" aria-label="Speak your message" title="Voice input">🎤</button>
     </div>
   </div>
 

@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -50,12 +50,22 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins(),
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 
+MAX_MESSAGE_CHARS = 4000
+
+
 class Message(BaseModel):
-    message: str
+    # Bounded so a single request can't send an arbitrarily large prompt upstream.
+    message: str = Field(..., min_length=1, max_length=MAX_MESSAGE_CHARS)
+
+
+@app.get("/api/health")
+def health():
+    return {"status": "ok", "configured": bool(HF_TOKEN)}
+
 
 @app.post("/api/chat")
 @limiter.limit(RATE_LIMIT)
@@ -70,7 +80,8 @@ def chat(request: Request, msg: Message):
     }
     json_data = {
         "model": MODEL_ID,
-        "messages": [{"role": "user", "content": msg.message}]
+        "messages": [{"role": "user", "content": msg.message.strip()}],
+        "max_tokens": 512,
     }
     try:
         response = requests.post(
